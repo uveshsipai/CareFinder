@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CareFinder - Hospital Directory</title>
     
-    <!-- Favicon (SVG Data URI) -->
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='25' fill='%23A00C30'/%3E%3Cpath d='M50 85 C50 85 90 60 90 35 C90 15 70 5 50 25 C30 5 10 15 10 35 C10 60 50 85 50 85 Z' fill='white'/%3E%3C/svg%3E">
 
     <!-- Tailwind CSS -->
@@ -35,15 +35,17 @@
             font-family: 'Outfit', sans-serif;
             color: var(--text-dark);
             background-color: var(--gray-100);
-            height: 100vh;
+            height: 100vh; /* Fallback */
+            height: 100dvh; /* Dynamic Viewport Height for Mobile */
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* --- Scrollbar --- */
         .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
             background: transparent;
@@ -51,7 +53,6 @@
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background-color: #cbd5e1;
             border-radius: 20px;
-            border: 2px solid #f3f4f6;
         }
 
         /* --- Animations --- */
@@ -73,6 +74,11 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Safe area spacing for notched phones */
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
         /* Utility classes for colors */
         .text-accent-dark { color: var(--accent-dark); }
         .bg-accent-dark { background-color: var(--accent-dark); }
@@ -83,7 +89,7 @@
 
     <!-- Header -->
     <header class="bg-white shadow-sm z-40 px-4 py-3 flex items-center justify-between shrink-0 relative">
-        <div class="flex items-center gap-2 cursor-pointer" onclick="resetSearch()">
+        <div class="flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80" onclick="resetSearch()">
             <div class="bg-accent-dark p-2 rounded-xl text-white shadow-lg shadow-rose-900/20">
                 <i class="ph-fill ph-heart text-xl"></i>
             </div>
@@ -100,33 +106,37 @@
     </header>
 
     <!-- Main Content Wrapper -->
-    <main class="flex-1 relative overflow-hidden bg-gray-50">
+    <main class="flex-1 relative overflow-hidden bg-gray-50 w-full">
         
         <!-- List View -->
-        <div id="homeView" class="absolute inset-0 z-20 flex flex-col items-center overflow-y-auto custom-scrollbar pt-10 px-4 pb-20">
+        <div id="homeView" class="absolute inset-0 z-20 flex flex-col items-center overflow-y-auto custom-scrollbar pt-6 md:pt-10 px-4 pb-32">
             
             <!-- Search Container -->
-            <div class="w-full max-w-2xl mb-8 fade-in" style="animation-delay: 0.1s;">
+            <div class="w-full max-w-2xl mb-6 fade-in" style="animation-delay: 0.1s;">
                 <h2 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-2">Find Healthcare</h2>
                 <p class="text-center text-gray-400 mb-6 text-sm">Search by Name, City, or State</p>
                 
-                <div class="relative group shadow-xl shadow-gray-200/50 rounded-2xl bg-white">
+                <div class="relative group shadow-xl shadow-gray-200/50 rounded-2xl bg-white transition-shadow focus-within:shadow-2xl focus-within:shadow-rose-900/10">
                     <i class="ph ph-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-accent-dark transition-colors"></i>
                     <input
                         type="text"
                         id="searchInput"
                         placeholder="e.g. Sterling Rajkot, Apollo Chennai..."
-                        class="w-full pl-14 pr-4 py-5 bg-transparent border border-gray-100 rounded-2xl focus:ring-4 focus:ring-rose-900/10 focus:border-accent-dark focus:outline-none transition-all placeholder-gray-400 text-lg font-medium"
+                        class="w-full pl-14 pr-4 py-4 md:py-5 bg-transparent border border-gray-100 rounded-2xl focus:ring-4 focus:ring-rose-900/10 focus:border-accent-dark focus:outline-none transition-all placeholder-gray-400 text-base md:text-lg font-medium text-gray-800"
                         autocomplete="off"
                     />
+                    <!-- Clear Button (Visible when typing) -->
+                    <button id="clearBtn" onclick="resetSearch()" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
+                        <i class="ph-fill ph-x-circle text-xl"></i>
+                    </button>
                 </div>
             </div>
 
             <!-- List of Hospitals -->
-            <div class="w-full max-w-3xl space-y-3" id="hospitalList">
+            <div class="w-full max-w-3xl space-y-3 pb-safe" id="hospitalList">
                 <!-- Empty State Initial -->
                 <div class="flex flex-col items-center justify-center py-10 text-gray-400 fade-in" style="animation-delay: 0.2s;">
-                    <div class="bg-white p-6 rounded-full mb-4 shadow-sm">
+                    <div class="bg-white p-6 rounded-full mb-4 shadow-sm ring-1 ring-gray-100">
                         <i class="ph-duotone ph-buildings text-4xl text-rose-200"></i>
                     </div>
                     <p class="text-sm font-medium">Enter details above to search the directory</p>
@@ -137,16 +147,21 @@
 
     </main>
 
-    <!-- Detail Card (Floating Overlay - Global) -->
-    <div id="detailCard" class="hidden absolute inset-0 z-[600] bg-black/40 backdrop-blur-[3px] flex items-end md:items-center justify-center p-0 md:p-4 transition-all duration-300">
-        <!-- Click outside to close -->
+    <!-- Detail Card (Floating Overlay - FIXED Position for true floating) -->
+    <!-- 
+       Mobile: Aligned bottom (items-end), padding-0.
+       Desktop: Aligned center (items-center), padding-4.
+    -->
+    <div id="detailCard" class="hidden fixed inset-0 z-[100] bg-black/40 backdrop-blur-[3px] flex items-end md:items-center justify-center transition-opacity duration-300">
+        <!-- Click background to close -->
         <div class="absolute inset-0" onclick="closeDetailCard()"></div>
         
         <!-- 
-           Mobile: Rounded Top Corners, Max Height 85vh, slides up from bottom
-           Desktop: Fully Rounded, Fixed width, slides up/fades in center
+           Card Container:
+           - Mobile: w-full, rounded-t-[2rem], max-h-[85vh]
+           - Desktop: w-[500px], rounded-3xl, max-h-[90vh]
         -->
-        <div class="bg-white w-full md:w-[500px] rounded-t-[2rem] md:rounded-3xl shadow-2xl overflow-hidden relative slide-up flex flex-col max-h-[85vh] md:max-h-[90vh]">
+        <div class="bg-white w-full md:w-[550px] rounded-t-[2rem] md:rounded-3xl shadow-2xl overflow-hidden relative slide-up flex flex-col max-h-[85dvh] md:max-h-[85vh] mb-0 md:mb-0">
             
             <!-- Card Header -->
             <div class="bg-accent-dark px-6 py-5 text-white flex justify-between items-start relative overflow-hidden shrink-0">
@@ -154,70 +169,76 @@
                <div class="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-10 -mt-10 blur-3xl"></div>
                
                <div class="relative z-10 flex-1 pr-4">
-                 <h2 id="cardTitle" class="text-2xl font-bold leading-tight">Hospital Name</h2>
-                 <p id="cardSubtitle" class="text-rose-200 text-sm font-medium mt-1 uppercase tracking-wide opacity-90">Type • Location</p>
+                 <h2 id="cardTitle" class="text-xl md:text-2xl font-bold leading-tight">Hospital Name</h2>
+                 <p id="cardSubtitle" class="text-rose-200 text-xs md:text-sm font-medium mt-1 uppercase tracking-wide opacity-90">Type • Location</p>
                </div>
-               <button onclick="closeDetailCard()" class="bg-black/20 hover:bg-black/30 p-2 rounded-full transition text-white/90 relative z-10">
+               <button onclick="closeDetailCard()" class="bg-black/20 hover:bg-black/30 p-2 rounded-full transition text-white/90 relative z-10 active:scale-95">
                  <i class="ph ph-x text-xl"></i>
                </button>
             </div>
 
             <!-- Card Body -->
-            <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar bg-white pb-10 md:pb-6">
+            <div class="p-6 overflow-y-auto custom-scrollbar bg-white safe-pb">
                
-               <!-- External Links Section -->
-               <div class="grid grid-cols-1 gap-3">
+               <!-- External Links Section (Prominent) -->
+               <div class="grid grid-cols-1 gap-3 mb-6">
                    <!-- Google Maps Button -->
-                   <a id="btnMaps" href="#" target="_blank" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-base shadow-lg shadow-gray-900/20 hover:bg-gray-800 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
-                        <i class="ph-fill ph-map-pin text-xl text-accent-light"></i>
+                   <a id="btnMaps" href="#" target="_blank" class="w-full py-3.5 md:py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm md:text-base shadow-lg shadow-gray-900/20 hover:bg-gray-800 transition transform active:scale-[0.98] flex items-center justify-center gap-2">
+                        <i class="ph-fill ph-map-pin text-lg text-accent-light"></i>
                         Locate on Google Maps
                    </a>
                    
                    <!-- Google Search Button -->
-                   <a id="btnSearch" href="#" target="_blank" class="w-full py-4 bg-white border border-gray-200 text-gray-700 rounded-2xl font-bold text-base hover:bg-gray-50 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
-                        <i class="ph-bold ph-google-logo text-xl text-blue-600"></i>
+                   <a id="btnSearch" href="#" target="_blank" class="w-full py-3.5 md:py-4 bg-white border border-gray-200 text-gray-700 rounded-2xl font-bold text-sm md:text-base hover:bg-gray-50 transition transform active:scale-[0.98] flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-google-logo text-lg text-blue-600"></i>
                         Search More on Google
                    </a>
                </div>
 
-               <!-- Address -->
-               <div class="flex gap-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                 <i class="ph-fill ph-map-pin shrink-0 text-accent-dark mt-1 text-xl"></i>
-                 <div>
-                     <p class="font-bold text-gray-900 mb-0.5 text-base">Address</p>
-                     <p id="cardAddress" class="text-gray-500 leading-relaxed">Address Line</p>
-                 </div>
-               </div>
+               <!-- Info Sections -->
+               <div class="space-y-4">
+                   <!-- Address -->
+                   <div class="flex gap-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                     <i class="ph-fill ph-map-pin shrink-0 text-accent-dark mt-1 text-xl"></i>
+                     <div>
+                         <p class="font-bold text-gray-900 mb-0.5 text-sm md:text-base">Address</p>
+                         <p id="cardAddress" class="text-gray-500 leading-relaxed text-xs md:text-sm">Address Line</p>
+                     </div>
+                   </div>
 
-               <!-- Contact Actions -->
-               <div class="grid grid-cols-2 gap-4">
-                 <a id="btnCall" href="#" class="flex items-center justify-center gap-2 bg-rose-50 text-accent-dark py-3.5 rounded-xl text-sm font-bold hover:bg-rose-100 transition border border-rose-100">
-                   <i class="ph-fill ph-phone text-lg"></i> Call Hospital
-                 </a>
-                 <a id="btnWebsite" href="#" target="_blank" class="flex items-center justify-center gap-2 bg-blue-50 text-blue-700 py-3.5 rounded-xl text-sm font-bold hover:bg-blue-100 transition border border-blue-100">
-                   <i class="ph-bold ph-globe text-lg"></i> Website
-                 </a>
-               </div>
+                   <!-- Contact Actions -->
+                   <div class="grid grid-cols-2 gap-3">
+                     <a id="btnCall" href="#" class="flex items-center justify-center gap-2 bg-rose-50 text-accent-dark py-3.5 rounded-xl text-sm font-bold hover:bg-rose-100 transition border border-rose-100 active:scale-[0.98]">
+                       <i class="ph-fill ph-phone text-lg"></i> Call
+                     </a>
+                     <a id="btnWebsite" href="#" target="_blank" class="flex items-center justify-center gap-2 bg-blue-50 text-blue-700 py-3.5 rounded-xl text-sm font-bold hover:bg-blue-100 transition border border-blue-100 active:scale-[0.98]">
+                       <i class="ph-bold ph-globe text-lg"></i> Website
+                     </a>
+                   </div>
 
-               <!-- Stats Grid -->
-               <div class="grid grid-cols-2 gap-4">
-                  <div class="p-4 rounded-2xl border border-gray-100 bg-white shadow-sm">
-                    <span class="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">Emergency</span>
-                    <span id="cardEmergency" class="text-base font-bold text-gray-800">N/A</span>
-                  </div>
-                  <div class="p-4 rounded-2xl border border-gray-100 bg-white shadow-sm">
-                    <span class="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">Established</span>
-                    <span id="cardEst" class="text-base font-bold text-gray-800">N/A</span>
-                  </div>
-               </div>
+                   <!-- Stats Grid -->
+                   <div class="grid grid-cols-2 gap-3">
+                      <div class="p-3.5 rounded-2xl border border-gray-100 bg-white shadow-sm">
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Emergency</span>
+                        <span id="cardEmergency" class="text-sm md:text-base font-bold text-gray-800">N/A</span>
+                      </div>
+                      <div class="p-3.5 rounded-2xl border border-gray-100 bg-white shadow-sm">
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Established</span>
+                        <span id="cardEst" class="text-sm md:text-base font-bold text-gray-800">N/A</span>
+                      </div>
+                   </div>
 
-               <!-- Specialties -->
-               <div id="cardSpecsContainer">
-                   <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Specialties & Facilities</h4>
-                   <div id="cardSpecsList" class="flex flex-wrap gap-2">
-                       <!-- Tags injected here -->
+                   <!-- Specialties -->
+                   <div id="cardSpecsContainer">
+                       <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Specialties & Facilities</h4>
+                       <div id="cardSpecsList" class="flex flex-wrap gap-2">
+                           <!-- Tags injected here -->
+                       </div>
                    </div>
                </div>
+               
+               <!-- Bottom Padding for safe scroll -->
+               <div class="h-4"></div>
 
             </div>
         </div>
@@ -272,13 +293,13 @@
         async function fetchCSV() {
             const loadingStatus = document.getElementById('loadingStatus');
             try {
-                // Fetch user specific file name
+                // Fetch user specific file name 'hospitaldata.csv'
                 const response = await fetch('./hospitaldata.csv');
                 if (!response.ok) throw new Error("File not found");
                 const text = await response.text();
                 processCSVData(text);
                 
-                loadingStatus.innerHTML = '<i class="ph-bold ph-check text-green-600"></i> Directory Ready';
+                loadingStatus.innerHTML = '<i class="ph-bold ph-check text-green-600"></i> Ready';
                 setTimeout(() => { loadingStatus.classList.add('opacity-0'); }, 2000);
                 
             } catch (err) {
@@ -301,6 +322,10 @@
 
         // Search Logic
         function searchHospitals(query) {
+            const clearBtn = document.getElementById('clearBtn');
+            if (query.length > 0) clearBtn.classList.remove('hidden');
+            else clearBtn.classList.add('hidden');
+
             if (!state.hospitals.length) return; 
 
             if (!query || query.length < 2) {
@@ -337,7 +362,7 @@
             if (isEmptyState) {
                 listContainer.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-10 text-gray-400 fade-in">
-                        <div class="bg-white p-6 rounded-full mb-4 shadow-sm">
+                        <div class="bg-white p-6 rounded-full mb-4 shadow-sm ring-1 ring-gray-100">
                             <i class="ph-duotone ph-buildings text-4xl text-rose-200"></i>
                         </div>
                         <p class="text-sm font-medium">Enter a name or location to start searching</p>
@@ -379,7 +404,7 @@
                         </p>
                       </div>
                       <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 group-hover:bg-rose-50 transition-colors">
-                         <i class="ph-bold ph-arrow-right text-gray-400 group-hover:text-accent-dark transition-colors"></i>
+                         <i class="ph-bold ph-caret-right text-gray-400 group-hover:text-accent-dark transition-colors"></i>
                       </div>
                     </div>
                     <div class="mt-4 flex flex-wrap gap-2">
@@ -432,13 +457,13 @@
             }
             btnMaps.href = mapsUrl;
 
-            // 2. Google Search Link (Updated Logic: Removed "hospital details")
+            // 2. Google Search Link
             const btnSearch = document.getElementById('btnSearch');
-            // Just Name, City, State for a cleaner search
+            // Removed "hospital details" suffix as requested
             const searchQuery = encodeURIComponent(`${h.Hospital_Name} ${h.District || ''} ${h.State || ''}`.trim());
             btnSearch.href = `https://www.google.com/search?q=${searchQuery}`;
 
-            // --- Existing Logic ---
+            // --- Contact & Web Logic ---
             const btnCall = document.getElementById('btnCall');
             if (h.Mobile_Number && h.Mobile_Number !== "0") {
                 btnCall.href = `tel:${h.Mobile_Number}`;
@@ -486,6 +511,7 @@
 
         function resetSearch() {
             document.getElementById('searchInput').value = '';
+            document.getElementById('clearBtn').classList.add('hidden');
             searchHospitals('');
         }
 
