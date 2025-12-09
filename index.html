@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CareFinder - Hospital Directory</title>
     
     <!-- Favicon (SVG Data URI) -->
@@ -138,11 +138,15 @@
     </main>
 
     <!-- Detail Card (Floating Overlay - Global) -->
-    <div id="detailCard" class="hidden absolute inset-0 z-[600] bg-black/20 backdrop-blur-[2px] flex items-end md:items-center justify-center p-0 md:p-4">
+    <div id="detailCard" class="hidden absolute inset-0 z-[600] bg-black/40 backdrop-blur-[3px] flex items-end md:items-center justify-center p-0 md:p-4 transition-all duration-300">
         <!-- Click outside to close -->
         <div class="absolute inset-0" onclick="closeDetailCard()"></div>
         
-        <div class="bg-white w-full md:w-[500px] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden relative slide-up flex flex-col max-h-[90vh]">
+        <!-- 
+           Mobile: Rounded Top Corners, Max Height 85vh, slides up from bottom
+           Desktop: Fully Rounded, Fixed width, slides up/fades in center
+        -->
+        <div class="bg-white w-full md:w-[500px] rounded-t-[2rem] md:rounded-3xl shadow-2xl overflow-hidden relative slide-up flex flex-col max-h-[85vh] md:max-h-[90vh]">
             
             <!-- Card Header -->
             <div class="bg-accent-dark px-6 py-5 text-white flex justify-between items-start relative overflow-hidden shrink-0">
@@ -159,7 +163,7 @@
             </div>
 
             <!-- Card Body -->
-            <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar bg-white">
+            <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar bg-white pb-10 md:pb-6">
                
                <!-- External Links Section -->
                <div class="grid grid-cols-1 gap-3">
@@ -428,9 +432,10 @@
             }
             btnMaps.href = mapsUrl;
 
-            // 2. Google Search Link
+            // 2. Google Search Link (Updated Logic: Removed "hospital details")
             const btnSearch = document.getElementById('btnSearch');
-            const searchQuery = encodeURIComponent(`${h.Hospital_Name} ${h.District || ''} hospital details`);
+            // Just Name, City, State for a cleaner search
+            const searchQuery = encodeURIComponent(`${h.Hospital_Name} ${h.District || ''} ${h.State || ''}`.trim());
             btnSearch.href = `https://www.google.com/search?q=${searchQuery}`;
 
             // --- Existing Logic ---
