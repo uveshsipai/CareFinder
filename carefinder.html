@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareFinder - Hospital Directory</title>
+    
+    <!-- Favicon (SVG Data URI) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='25' fill='%23A00C30'/%3E%3Cpath d='M50 85 C50 85 90 60 90 35 C90 15 70 5 50 25 C30 5 10 15 10 35 C10 60 50 85 50 85 Z' fill='white'/%3E%3C/svg%3E">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- Color Variables & Base Styles --- */
+        :root {
+            --accent-dark: #A00C30;
+            --accent-light: #F6A09A;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --text-light: #4b5563;
+            --text-dark: #1f2937;
+            --white: #ffffff;
+            --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-dark);
+            background-color: var(--gray-100);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Scrollbar --- */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+            border: 2px solid #f3f4f6;
+        }
+
+        /* --- Animations --- */
+        .slide-up {
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Utility classes for colors */
+        .text-accent-dark { color: var(--accent-dark); }
+        .bg-accent-dark { background-color: var(--accent-dark); }
+        .border-accent-dark { border-color: var(--accent-dark); }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm z-40 px-4 py-3 flex items-center justify-between shrink-0 relative">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="resetSearch()">
+            <div class="bg-accent-dark p-2 rounded-xl text-white shadow-lg shadow-rose-900/20">
+                <i class="ph-fill ph-heart text-xl"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight text-gray-900 hidden sm:block">
+                Care<span class="text-accent-dark">Finder</span>
+            </h1>
+        </div>
+        
+        <!-- Loading Indicator -->
+        <div id="loadingStatus" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 bg-gray-50 rounded-full select-none transition-opacity duration-500">
+            <i class="ph ph-spinner animate-spin text-lg text-accent-dark"></i>
+            <span class="hidden sm:inline">Loading Directory...</span>
+        </div>
+    </header>
+
+    <!-- Main Content Wrapper -->
+    <main class="flex-1 relative overflow-hidden bg-gray-50">
+        
+        <!-- List View -->
+        <div id="homeView" class="absolute inset-0 z-20 flex flex-col items-center overflow-y-auto custom-scrollbar pt-10 px-4 pb-20">
+            
+            <!-- Search Container -->
+            <div class="w-full max-w-2xl mb-8 fade-in" style="animation-delay: 0.1s;">
+                <h2 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-2">Find Healthcare</h2>
+                <p class="text-center text-gray-400 mb-6 text-sm">Search by Name, City, or State</p>
+                
+                <div class="relative group shadow-xl shadow-gray-200/50 rounded-2xl bg-white">
+                    <i class="ph ph-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-accent-dark transition-colors"></i>
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="e.g. Sterling Rajkot, Apollo Chennai..."
+                        class="w-full pl-14 pr-4 py-5 bg-transparent border border-gray-100 rounded-2xl focus:ring-4 focus:ring-rose-900/10 focus:border-accent-dark focus:outline-none transition-all placeholder-gray-400 text-lg font-medium"
+                        autocomplete="off"
+                    />
+                </div>
+            </div>
+
+            <!-- List of Hospitals -->
+            <div class="w-full max-w-3xl space-y-3" id="hospitalList">
+                <!-- Empty State Initial -->
+                <div class="flex flex-col items-center justify-center py-10 text-gray-400 fade-in" style="animation-delay: 0.2s;">
+                    <div class="bg-white p-6 rounded-full mb-4 shadow-sm">
+                        <i class="ph-duotone ph-buildings text-4xl text-rose-200"></i>
+                    </div>
+                    <p class="text-sm font-medium">Enter details above to search the directory</p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Detail Card (Floating Overlay - Global) -->
+    <div id="detailCard" class="hidden absolute inset-0 z-[600] bg-black/20 backdrop-blur-[2px] flex items-end md:items-center justify-center p-0 md:p-4">
+        <!-- Click outside to close -->
+        <div class="absolute inset-0" onclick="closeDetailCard()"></div>
+        
+        <div class="bg-white w-full md:w-[500px] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden relative slide-up flex flex-col max-h-[90vh]">
+            
+            <!-- Card Header -->
+            <div class="bg-accent-dark px-6 py-5 text-white flex justify-between items-start relative overflow-hidden shrink-0">
+               <!-- Decorative BG -->
+               <div class="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-10 -mt-10 blur-3xl"></div>
+               
+               <div class="relative z-10 flex-1 pr-4">
+                 <h2 id="cardTitle" class="text-2xl font-bold leading-tight">Hospital Name</h2>
+                 <p id="cardSubtitle" class="text-rose-200 text-sm font-medium mt-1 uppercase tracking-wide opacity-90">Type • Location</p>
+               </div>
+               <button onclick="closeDetailCard()" class="bg-black/20 hover:bg-black/30 p-2 rounded-full transition text-white/90 relative z-10">
+                 <i class="ph ph-x text-xl"></i>
+               </button>
+            </div>
+
+            <!-- Card Body -->
+            <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar bg-white">
+               
+               <!-- External Links Section -->
+               <div class="grid grid-cols-1 gap-3">
+                   <!-- Google Maps Button -->
+                   <a id="btnMaps" href="#" target="_blank" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-base shadow-lg shadow-gray-900/20 hover:bg-gray-800 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+                        <i class="ph-fill ph-map-pin text-xl text-accent-light"></i>
+                        Locate on Google Maps
+                   </a>
+                   
+                   <!-- Google Search Button -->
+                   <a id="btnSearch" href="#" target="_blank" class="w-full py-4 bg-white border border-gray-200 text-gray-700 rounded-2xl font-bold text-base hover:bg-gray-50 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-google-logo text-xl text-blue-600"></i>
+                        Search More on Google
+                   </a>
+               </div>
+
+               <!-- Address -->
+               <div class="flex gap-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                 <i class="ph-fill ph-map-pin shrink-0 text-accent-dark mt-1 text-xl"></i>
+                 <div>
+                     <p class="font-bold text-gray-900 mb-0.5 text-base">Address</p>
+                     <p id="cardAddress" class="text-gray-500 leading-relaxed">Address Line</p>
+                 </div>
+               </div>
+
+               <!-- Contact Actions -->
+               <div class="grid grid-cols-2 gap-4">
+                 <a id="btnCall" href="#" class="flex items-center justify-center gap-2 bg-rose-50 text-accent-dark py-3.5 rounded-xl text-sm font-bold hover:bg-rose-100 transition border border-rose-100">
+                   <i class="ph-fill ph-phone text-lg"></i> Call Hospital
+                 </a>
+                 <a id="btnWebsite" href="#" target="_blank" class="flex items-center justify-center gap-2 bg-blue-50 text-blue-700 py-3.5 rounded-xl text-sm font-bold hover:bg-blue-100 transition border border-blue-100">
+                   <i class="ph-bold ph-globe text-lg"></i> Website
+                 </a>
+               </div>
+
+               <!-- Stats Grid -->
+               <div class="grid grid-cols-2 gap-4">
+                  <div class="p-4 rounded-2xl border border-gray-100 bg-white shadow-sm">
+                    <span class="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">Emergency</span>
+                    <span id="cardEmergency" class="text-base font-bold text-gray-800">N/A</span>
+                  </div>
+                  <div class="p-4 rounded-2xl border border-gray-100 bg-white shadow-sm">
+                    <span class="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">Established</span>
+                    <span id="cardEst" class="text-base font-bold text-gray-800">N/A</span>
+                  </div>
+               </div>
+
+               <!-- Specialties -->
+               <div id="cardSpecsContainer">
+                   <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Specialties & Facilities</h4>
+                   <div id="cardSpecsList" class="flex flex-wrap gap-2">
+                       <!-- Tags injected here -->
+                   </div>
+               </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. State ---
+        let state = {
+            hospitals: [],
+            filteredHospitals: [],
+            selectedHospital: null
+        };
+
+        // --- 2. Logic & Helpers ---
+
+        // CSV Parser
+        function parseCSV(text) {
+            const rows = [];
+            let currentRow = [];
+            let currentVal = '';
+            let insideQuotes = false;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (char === '"') {
+                    if (insideQuotes && text[i+1] === '"') { currentVal += '"'; i++; }
+                    else { insideQuotes = !insideQuotes; }
+                } else if (char === ',' && !insideQuotes) {
+                    currentRow.push(currentVal); currentVal = '';
+                } else if ((char === '\r' || char === '\n') && !insideQuotes) {
+                    if (currentVal || currentRow.length > 0) currentRow.push(currentVal);
+                    if (currentRow.length > 0) rows.push(currentRow);
+                    currentRow = []; currentVal = '';
+                    if (char === '\r' && text[i+1] === '\n') i++;
+                } else {
+                    currentVal += char;
+                }
+            }
+            if (currentVal || currentRow.length > 0) { currentRow.push(currentVal); rows.push(currentRow); }
+            
+            if (rows.length < 2) return [];
+            const headers = rows[0].map(h => h.trim());
+            return rows.slice(1).map(row => {
+                if(row.length !== headers.length) return null;
+                const obj = {};
+                row.forEach((val, idx) => obj[headers[idx]] = val.trim());
+                return obj;
+            }).filter(item => item !== null);
+        }
+
+        // Data Loading
+        async function fetchCSV() {
+            const loadingStatus = document.getElementById('loadingStatus');
+            try {
+                // Fetch user specific file name
+                const response = await fetch('./hospitaldata.csv');
+                if (!response.ok) throw new Error("File not found");
+                const text = await response.text();
+                processCSVData(text);
+                
+                loadingStatus.innerHTML = '<i class="ph-bold ph-check text-green-600"></i> Directory Ready';
+                setTimeout(() => { loadingStatus.classList.add('opacity-0'); }, 2000);
+                
+            } catch (err) {
+                console.warn("Auto-load failed. This is expected if opening file locally without a server.");
+                loadingStatus.innerHTML = '<i class="ph-bold ph-warning text-red-600"></i> Load Failed';
+            }
+        }
+
+        function processCSVData(text) {
+            try {
+                const data = parseCSV(text);
+                const validData = data.filter(row => row.Hospital_Name); 
+                state.hospitals = validData;
+                console.log("Loaded " + validData.length + " hospitals.");
+            } catch (err) {
+                console.error("Error parsing CSV data", err);
+                alert("Error reading the CSV file. Please check the file format.");
+            }
+        }
+
+        // Search Logic
+        function searchHospitals(query) {
+            if (!state.hospitals.length) return; 
+
+            if (!query || query.length < 2) {
+                state.filteredHospitals = [];
+                renderList(true); 
+                return;
+            }
+
+            const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+
+            state.filteredHospitals = state.hospitals.filter(h => {
+                const searchableText = [
+                    h.Hospital_Name,
+                    h.District,
+                    h.Town,
+                    h.Location,
+                    h.State,
+                    h.Pincode,
+                    h.Hospital_Care_Type
+                ].map(val => val ? val.toLowerCase() : "").join(" ");
+
+                return tokens.every(token => searchableText.includes(token));
+            });
+            
+            renderList(false);
+        }
+
+        // --- 3. DOM Rendering ---
+
+        function renderList(isEmptyState) {
+            const listContainer = document.getElementById('hospitalList');
+            listContainer.innerHTML = '';
+
+            if (isEmptyState) {
+                listContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 text-gray-400 fade-in">
+                        <div class="bg-white p-6 rounded-full mb-4 shadow-sm">
+                            <i class="ph-duotone ph-buildings text-4xl text-rose-200"></i>
+                        </div>
+                        <p class="text-sm font-medium">Enter a name or location to start searching</p>
+                    </div>`;
+                return;
+            }
+
+            if (state.filteredHospitals.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-20 text-gray-400 fade-in">
+                        <i class="ph ph-warning-circle text-4xl mb-2 text-gray-300"></i>
+                        <p>No hospitals found matching your criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const header = document.createElement('div');
+            header.className = "text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 fade-in";
+            header.textContent = `${state.filteredHospitals.length} Hospitals Found`;
+            listContainer.appendChild(header);
+
+            state.filteredHospitals.slice(0, 50).forEach((h, index) => { 
+                const el = document.createElement('div');
+                el.className = `group p-5 rounded-2xl cursor-pointer bg-white border border-gray-100 hover:border-accent-light hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden fade-in`;
+                el.style.animationDelay = `${index * 0.05}s`;
+                
+                const nameClass = "font-bold text-gray-800 text-lg leading-snug group-hover:text-accent-dark transition-colors";
+                
+                el.innerHTML = `
+                    <div class="flex justify-between items-start">
+                      <div class="flex-1 pr-4">
+                        <h3 class="${nameClass}">
+                          ${h.Hospital_Name}
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1 flex items-start gap-1.5">
+                          <i class="ph-fill ph-map-pin shrink-0 mt-0.5 text-accent-dark"></i>
+                          <span class="line-clamp-1 font-medium">${h.District || h.Location || 'Unknown Loc'}, ${h.State || ''}</span>
+                        </p>
+                      </div>
+                      <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 group-hover:bg-rose-50 transition-colors">
+                         <i class="ph-bold ph-arrow-right text-gray-400 group-hover:text-accent-dark transition-colors"></i>
+                      </div>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                       <span class="text-[11px] px-2.5 py-1 bg-gray-50 text-gray-600 rounded-md font-semibold border border-gray-100 uppercase tracking-wide">
+                         ${h.Hospital_Care_Type || 'General'}
+                       </span>
+                    </div>
+                `;
+                
+                el.onclick = () => openDetailCard(h);
+                listContainer.appendChild(el);
+            });
+        }
+
+        // Open Detail Card
+        function openDetailCard(h) {
+            state.selectedHospital = h;
+            const card = document.getElementById('detailCard');
+            card.classList.remove('hidden');
+
+            // Populate Text
+            document.getElementById('cardTitle').textContent = h.Hospital_Name;
+            document.getElementById('cardSubtitle').textContent = `${h.Hospital_Care_Type || 'Hospital'} • ${h.District || ''}`;
+            const addressText = `${h.Address_Original_First_Line || ''}, ${h.District || ''}, ${h.State || ''} - ${h.Pincode || ''}`;
+            document.getElementById('cardAddress').textContent = addressText;
+            
+            // --- External Link Logic ---
+            
+            // 1. Google Maps Link
+            const btnMaps = document.getElementById('btnMaps');
+            let mapsUrl = '';
+            
+            // Clean coordinates if they exist
+            let lat = null, lng = null;
+            if(h.Location_Coordinates) {
+                 const clean = h.Location_Coordinates.replace(/"/g, '').split(',');
+                 if(clean.length === 2) {
+                     lat = clean[0].trim();
+                     lng = clean[1].trim();
+                 }
+            }
+
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                // Use exact coordinates if available
+                mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+            } else {
+                // Fallback to searching by address
+                const query = encodeURIComponent(`${h.Hospital_Name} ${h.District || ''} ${h.State || ''}`);
+                mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+            }
+            btnMaps.href = mapsUrl;
+
+            // 2. Google Search Link
+            const btnSearch = document.getElementById('btnSearch');
+            const searchQuery = encodeURIComponent(`${h.Hospital_Name} ${h.District || ''} hospital details`);
+            btnSearch.href = `https://www.google.com/search?q=${searchQuery}`;
+
+            // --- Existing Logic ---
+            const btnCall = document.getElementById('btnCall');
+            if (h.Mobile_Number && h.Mobile_Number !== "0") {
+                btnCall.href = `tel:${h.Mobile_Number}`;
+                btnCall.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                btnCall.classList.add('opacity-50', 'pointer-events-none');
+            }
+
+            const btnWeb = document.getElementById('btnWebsite');
+            if (h.Website && h.Website.length > 3) {
+                let url = h.Website;
+                if (!url.startsWith('http')) url = 'http://' + url;
+                btnWeb.href = url;
+                btnWeb.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                btnWeb.classList.add('opacity-50', 'pointer-events-none');
+            }
+
+            document.getElementById('cardEmergency').textContent = (h.Emergency_Num && h.Emergency_Num !== "0") ? h.Emergency_Num : "N/A";
+            document.getElementById('cardEst').textContent = (h.Establised_Year && h.Establised_Year !== "0") ? h.Establised_Year : "N/A";
+
+            // Tags
+            const specsContainer = document.getElementById('cardSpecsList');
+            specsContainer.innerHTML = '';
+            
+            const rawSpecs = (h.Specialties && h.Specialties !== "0") ? h.Specialties.split(',') : [];
+            const rawFacs = (h.Facilities && h.Facilities !== "0") ? h.Facilities.split(',') : [];
+            const tags = [...rawSpecs, ...rawFacs].slice(0, 10);
+
+            if (tags.length === 0) specsContainer.innerHTML = '<span class="text-xs text-gray-400 italic">No specifics listed</span>';
+
+            tags.forEach(tag => {
+                if(tag && tag.trim().length > 1) {
+                    const s = document.createElement('span');
+                    s.className = "text-[11px] px-2.5 py-1.5 bg-gray-50 border border-gray-100 text-gray-600 rounded-lg font-medium";
+                    s.textContent = tag.trim();
+                    specsContainer.appendChild(s);
+                }
+            });
+        }
+
+        function closeDetailCard() {
+            document.getElementById('detailCard').classList.add('hidden');
+        }
+
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            searchHospitals('');
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchHospitals(e.target.value);
+        });
+
+        // --- Init ---
+        fetchCSV();
+
+    </script>
+</body>
+</html>
